@@ -1,0 +1,6 @@
+services:
+  web:
+    build: .
+    image: digitalstreamers-www:dev
+    ports:
+      - "8080:80"
