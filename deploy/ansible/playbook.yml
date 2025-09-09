@@ -1,0 +1,56 @@
+- hosts: mask_nodes
+  become: true
+  serial: 1
+  vars:
+    validate_cmd: 'nginx -t -c %s'
+  tasks:
+    - name: Ensure dirs
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ site_include_dir }}"
+        - "/etc/nginx/snippets"
+
+    - name: Push http-level config (map/split/limit)
+      copy:
+        src: "../../nginx/conf.d/00_ds_http.conf"
+        dest: "{{ http_conf_path }}"
+        mode: "0644"
+        backup: true
+        validate: "{{ validate_cmd }}"
+      notify: reload nginx
+
+    - name: Ensure include line inside existing server block (one-time)
+      blockinfile:
+        path: "{{ site_file }}"
+        insertafter: '^\s*index\s+index\.html;'
+        marker: "# {mark} ds-server-includes"
+        block: "include {{ site_include_dir }}/*.conf;"
+        backup: true
+      notify: reload nginx
+
+    - name: Render per-node vars snippet
+      template:
+        src: "../../nginx/server-includes/10-ds-vars.conf.j2"
+        dest: "{{ site_include_dir }}/10-ds-vars.conf"
+        mode: "0644"
+        backup: true
+        validate: "{{ validate_cmd }}"
+      notify: reload nginx
+
+    - name: Push API snippet (common)
+      copy:
+        src: "../../nginx/server-includes/20-ds-api.conf"
+        dest: "{{ site_include_dir }}/20-ds-api.conf"
+        mode: "0644"
+        backup: true
+        validate: "{{ validate_cmd }}"
+      notify: reload nginx
+
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
