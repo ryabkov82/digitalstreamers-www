@@ -4,6 +4,12 @@
     "*.j2": "jinja"
   },
   "yaml.schemaStore.enable": false,
+  "yaml.schemas": {
+    "./.vscode/github-workflow.schema.json": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ]
+  },
   "ansible.validation.lint.enabled": true,
   "ansible.lint.path": "/usr/bin/ansible-lint",
   "ansible.python.interpreterPath": "/usr/bin/python3"  

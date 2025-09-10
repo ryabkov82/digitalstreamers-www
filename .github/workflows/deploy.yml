@@ -1,0 +1,135 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Ansible limit (host/group/pattern), e.g. nl-ams-1 or mask_nodes"
+        required: false
+        default: ""
+      check:
+        description: "Dry-run (--check --diff)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      INV: deploy/ansible/inventory.ini
+      LIMIT: ${{ inputs.limit }}
+      CHECK: ${{ inputs.check }}
+      ANSIBLE_FORCE_COLOR: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install deps (ansible, linters, tools)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq rsync
+          python -m pip install --upgrade pip
+          pip install "ansible-core>=2.16,<2.18" ansible-lint yamllint
+
+      - name: Write SSH key and base config
+        run: |
+          mkdir -p ~/.ssh
+          umask 077
+          cat > ~/.ssh/ds_key <<'EOF'
+          ${{ secrets.DEPLOY_SSH_KEY }}
+          EOF
+          chmod 600 ~/.ssh/ds_key
+          printf "Host *\n  IdentityFile ~/.ssh/ds_key\n  IdentitiesOnly yes\n  ServerAliveInterval 30\n" > ~/.ssh/config
+
+      # Определяем, задан ли секрет SSH_KNOWN_HOSTS (без использования secrets.* в if:)
+      - name: Detect SSH_KNOWN_HOSTS secret
+        id: detect_known
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.SSH_KNOWN_HOSTS }}" ]; then
+            echo "has=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Если секрет задан — используем его
+      - name: Write known_hosts from secret
+        if: steps.detect_known.outputs.has == '1'
+        shell: bash
+        run: |
+          umask 077
+          cat > ~/.ssh/known_hosts <<'EOF'
+          ${{ secrets.SSH_KNOWN_HOSTS }}
+          EOF
+          chmod 600 ~/.ssh/known_hosts
+
+      # Иначе — собираем known_hosts на лету через ssh-keyscan и inventory
+      - name: Build known_hosts from inventory (ssh-keyscan)
+        if: steps.detect_known.outputs.has == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          : > ~/.ssh/known_hosts
+
+          # Получаем список хостов группы mask_nodes (алиасы из inventory)
+          mapfile -t HOSTS < <(ansible -i "$INV" mask_nodes --list-hosts | tail -n +2 | xargs -n1)
+
+          for h in "${HOSTS[@]}"; do
+            info="$(ansible-inventory -i "$INV" --host "$h")"
+            host="$(echo "$info" | jq -r '.ansible_host // empty')"
+            port="$(echo "$info" | jq -r '.ansible_port // empty')"
+            pflag=""; [ -n "$port" ] && pflag="-p $port"
+
+            # Скан по алиасу (если резолвится публично)
+            ssh-keyscan -T 5 $pflag "$h"    >> ~/.ssh/known_hosts 2>/dev/null || true
+
+            # Скан по ansible_host (если задан и отличается)
+            if [ -n "$host" ] && [ "$host" != "$h" ]; then
+              ssh-keyscan -T 5 $pflag "$host" >> ~/.ssh/known_hosts 2>/dev/null || true
+            fi
+          done
+
+          sort -u ~/.ssh/known_hosts -o ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts || true
+
+      - name: (Optional) Lint
+        run: |
+          ansible-lint deploy/ansible/playbook.yml || true
+          ansible-lint deploy/ansible/check_status.yml || true
+          yamllint deploy/ansible || true
+
+      - name: Show inputs
+        run: |
+          echo "LIMIT='${LIMIT}'"
+          echo "CHECK='${CHECK}'"
+
+      - name: Dry-run deploy (check+diff)
+        if: env.CHECK == 'true'
+        run: |
+          ansible-playbook -i "$INV" deploy/ansible/playbook.yml --check --diff ${LIMIT:+-l $LIMIT}
+
+      - name: Real deploy
+        if: env.CHECK != 'true'
+        run: |
+          ansible-playbook -i "$INV" deploy/ansible/playbook.yml ${LIMIT:+-l $LIMIT}
+
+      - name: Post-deploy status
+        if: success()
+        run: |
+          ansible-playbook -i "$INV" deploy/ansible/check_status.yml ${LIMIT:+-l $LIMIT}
