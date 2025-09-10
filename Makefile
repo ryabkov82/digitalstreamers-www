@@ -154,3 +154,14 @@ else
 	@echo "No gh CLI found. Tag $(TAG) pushed."
 	@echo "If you want to auto-trigger GitHub Actions, install GitHub CLI (gh) or run the 'deploy' workflow manually."
 endif
+
+# Установка публичного ключа на целевой сервер (HOST=алиас из ~/.ssh/config)
+# Если есть пароль (первичное подключение), ssh спросит его.
+# make push-key HOST=nl-ams-3
+push-key:
+	@if [ -z "$(HOST)" ]; then echo "Usage: make push-key HOST=nl-ams-3"; exit 1; fi
+	@if [ ! -f $$HOME/.ssh/ds_ansible.pub ]; then echo "~/.ssh/ds_ansible.pub not found"; exit 1; fi
+	@echo ">>> Installing ~/.ssh/ds_ansible.pub to $(HOST):~/.ssh/authorized_keys"
+	@cat $$HOME/.ssh/ds_ansible.pub | ssh -o StrictHostKeyChecking=accept-new -o BatchMode=no "$(HOST)" \
+	  'umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys && echo OK' || \
+	  (echo "Failed to copy key. Check HOST, password, network."; exit 1)
