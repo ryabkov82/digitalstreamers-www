@@ -61,22 +61,35 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   
-    // Часы в подвале
+    // Часы и информация об узле
     const timeEl = document.getElementById('currentTime');
-    if (timeEl) setInterval(() => { timeEl.textContent = new Date().toLocaleString(); }, 1000);
-
-    // Подтягиваем имя/город узла
     const nameEl = document.getElementById('serverName');
-    if (nameEl) {
-        fetch('/api/status', { cache: 'no-store' })
+
+    if (timeEl || nameEl) {
+      fetch('/api/status', { cache: 'no-store' })
         .then(r => r.json())
         .then(d => {
-            // ожидаем поля из nginx: name, city
-            nameEl.textContent = d && (d.name || d.hostname)
-            ? [d.name, d.city].filter(Boolean).join(' · ')
-            : window.location.host;
+          if (nameEl) nameEl.textContent = d && d.tz ? d.tz : window.location.host;
+          if (timeEl) {
+            const serverTime = d && d.time ? Date.parse(d.time) : NaN;
+            const tz = d && d.tz;
+            if (!isNaN(serverTime)) {
+              const offset = serverTime - Date.now();
+              const update = () => {
+                const now = new Date(Date.now() + offset);
+                timeEl.textContent = tz ? now.toLocaleString(undefined, { timeZone: tz }) : now.toLocaleString();
+              };
+              update();
+              setInterval(update, 1000);
+            } else {
+              timeEl.textContent = new Date().toLocaleString();
+            }
+          }
         })
-        .catch(() => { nameEl.textContent = window.location.host; });
-    }    
+        .catch(() => {
+          if (nameEl) nameEl.textContent = window.location.host;
+          if (timeEl) timeEl.textContent = new Date().toLocaleString();
+        });
+    }
   });
   
