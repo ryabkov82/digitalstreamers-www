@@ -1,56 +1,142 @@
-- hosts: mask_nodes
+- name: Deploy Digital Streamers Nginx (http-level, snippets, vhost, frontend)
+  hosts: mask_nodes
   become: true
   serial: 1
-  vars:
-    validate_cmd: 'nginx -t -c %s'
+
+  # Переменные путей/параметров задаём в inventory.ini в [mask_nodes:vars]
+  # Примеры:
+  #   site_include_dir=/etc/nginx/ds/server-includes
+  #   http_conf_path=/etc/nginx/conf.d/00_ds_http.conf
+  #   site_available_dir=/etc/nginx/sites-available
+  #   site_enabled_dir=/etc/nginx/sites-enabled
+  #   site_vhost_name=digitalstreamers.xyz
+  #   site_root=/var/www/digitalstreamers.xyz/html
+  #   backend_listen=127.0.0.1:8443
+  #   backend_default=false
+  #   main_names="www.digitalstreamers.xyz digitalstreamers.xyz"
+  #   tls_cert_path=/etc/letsencrypt/live/digitalstreamers.xyz/fullchain.pem
+  #   tls_key_path=/etc/letsencrypt/live/digitalstreamers.xyz/privkey.pem
+  #
+  # Перехостовые:
+  #   ds_node_id, ds_city, ds_region, ds_tz
+
   tasks:
-    - name: Ensure dirs
-      file:
+    - name: Ensure Include and Snippets Directories Exist
+      ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         mode: "0755"
       loop:
         - "{{ site_include_dir }}"
         - "/etc/nginx/snippets"
+      notify: Reload Nginx
 
-    - name: Push http-level config (map/split/limit)
-      copy:
+    - name: Install HTTP-Level Config (map/split/limit zones)
+      ansible.builtin.copy:
         src: "../../nginx/conf.d/00_ds_http.conf"
         dest: "{{ http_conf_path }}"
         mode: "0644"
         backup: true
-        validate: "{{ validate_cmd }}"
-      notify: reload nginx
+      # shared memory zones меняют layout — для них безопаснее рестарт
+      notify: Restart Nginx
 
-    - name: Ensure include line inside existing server block (one-time)
-      blockinfile:
-        path: "{{ site_file }}"
-        insertafter: '^\s*index\s+index\.html;'
-        marker: "# {mark} ds-server-includes"
-        block: "include {{ site_include_dir }}/*.conf;"
+    - name: Install WEB Snippet (routes, cache, blocks)
+      ansible.builtin.copy:
+        src: "../../nginx/server-includes/30-ds-web.conf"
+        dest: "{{ site_include_dir }}/30-ds-web.conf"
+        mode: "0644"
         backup: true
-      notify: reload nginx
+      notify: Reload Nginx
 
-    - name: Render per-node vars snippet
-      template:
+    - name: Render Per-Node Vars Snippet
+      ansible.builtin.template:
         src: "../../nginx/server-includes/10-ds-vars.conf.j2"
         dest: "{{ site_include_dir }}/10-ds-vars.conf"
         mode: "0644"
         backup: true
-        validate: "{{ validate_cmd }}"
-      notify: reload nginx
+      notify: Reload Nginx
 
-    - name: Push API snippet (common)
-      copy:
+    - name: Install API Snippet (common)
+      ansible.builtin.copy:
         src: "../../nginx/server-includes/20-ds-api.conf"
         dest: "{{ site_include_dir }}/20-ds-api.conf"
         mode: "0644"
         backup: true
-        validate: "{{ validate_cmd }}"
-      notify: reload nginx
+      notify: Reload Nginx
+
+    - name: Ensure Unified Site Root Exists (www-data)
+      ansible.builtin.file:
+        path: "{{ site_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: Deploy Static Frontend (index.html, assets, etc.)
+      ansible.builtin.copy:
+        src: "../../frontend/"
+        dest: "{{ site_root }}/"
+        owner: www-data
+        group: www-data
+        mode: "0644"
+        directory_mode: "0755"
+        force: true
+
+    # ---------- Управление ПОЛНЫМ vhost (TLS backend на 127.0.0.1:8443) ----------
+
+    - name: Render Full Vhost into sites-available
+      ansible.builtin.template:
+        src: "../../nginx/sites/site_vhost.conf.j2"
+        dest: "{{ site_available_dir }}/{{ site_vhost_name }}"
+        mode: "0644"
+        backup: true
+      register: vhost_tpl
+      notify: Reload Nginx
+
+    - name: Remember Current Enabled Symlink Target (if any)
+      ansible.builtin.stat:
+        path: "{{ site_enabled_dir }}/{{ site_vhost_name }}"
+        follow: true
+      register: vhost_link_before
+
+    - name: Point sites-enabled Symlink to New Vhost
+      ansible.builtin.file:
+        src: "{{ site_available_dir }}/{{ site_vhost_name }}"
+        dest: "{{ site_enabled_dir }}/{{ site_vhost_name }}"
+        state: link
+        force: true
+
+    - name: Validate and Reload Nginx After Vhost Switch
+      block:
+        - name: Test Nginx Config After Vhost Switch
+          ansible.builtin.command: nginx -t
+          register: nginx_test
+          changed_when: false
+
+        - name: Reload Nginx (Config OK)
+          ansible.builtin.service:
+            name: nginx
+            state: reloaded
+      rescue:
+        - name: Rollback Symlink to Previous Target on Failure
+          when: vhost_link_before.stat.exists | default(false)
+          ansible.builtin.file:
+            src: "{{ vhost_link_before.stat.path }}"
+            dest: "{{ site_enabled_dir }}/{{ site_vhost_name }}"
+            state: link
+            force: true
+
+        - name: Fail with nginx -t Output
+          ansible.builtin.fail:
+            msg: "nginx -t failed: {{ nginx_test.stderr | default(nginx_test.stdout) }}"
 
   handlers:
-    - name: reload nginx
-      service:
+    - name: Reload Nginx
+      ansible.builtin.service:
         name: nginx
         state: reloaded
+
+    - name: Restart Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted

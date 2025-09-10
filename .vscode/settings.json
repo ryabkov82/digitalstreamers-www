@@ -4,5 +4,7 @@
     "*.j2": "jinja"
   },
   "yaml.schemaStore.enable": false,
-  "ansible.python.interpreterPath": "/bin/python3"
+  "ansible.validation.lint.enabled": true,
+  "ansible.lint.path": "/usr/bin/ansible-lint",
+  "ansible.python.interpreterPath": "/usr/bin/python3"  
 }

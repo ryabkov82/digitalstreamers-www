@@ -1,0 +1,36 @@
+server {
+    listen {{ backend_listen | default('127.0.0.1:8443') }} ssl http2{% if backend_default | default(false) %} default_server{% endif %};
+
+    # www, корень и любые поддомены
+    server_name {{ main_names | default('www.digitalstreamers.xyz digitalstreamers.xyz') }}
+                ~^(?:.+)\.digitalstreamers\.xyz$;
+
+    root {{ site_root | default('/var/www/digitalstreamers.xyz/html') }};
+    index index.html;
+
+    # TLS
+    ssl_certificate     {{ tls_cert_path | default('/etc/letsencrypt/live/digitalstreamers.xyz/fullchain.pem') }};
+    ssl_certificate_key {{ tls_key_path  | default('/etc/letsencrypt/live/digitalstreamers.xyz/privkey.pem') }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    # при желании OCSP:
+    # ssl_stapling on; ssl_stapling_verify on;
+    # resolver 1.1.1.1 8.8.8.8 valid=300s; resolver_timeout 5s;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin" always;
+    add_header X-Request-ID $request_id always;
+
+    # Подключаем общий веб-сниппет и API
+    include /etc/nginx/ds/server-includes/*.conf;
+
+    access_log /var/log/nginx/{{ ds_node_id | default('site') }}-site.access.log;
+    error_log  /var/log/nginx/{{ ds_node_id | default('site') }}-site.error.log;
+}
