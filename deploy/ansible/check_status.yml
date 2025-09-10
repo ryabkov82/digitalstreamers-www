@@ -1,0 +1,27 @@
+# deploy/ansible/check_status.yml
+- name: Check Digital Streamers backends locally with SNI
+  hosts: mask_nodes
+  gather_facts: false
+
+  vars:
+    # Берём первый домен из main_names (обычно www.digitalstreamers.xyz)
+    site_main_name: "{{ (main_names | default('www.digitalstreamers.xyz')).split(' ')[0] }}"
+
+  tasks:
+    # Нам нужен локальный backend с правильным SNI. Это умеет только curl --resolve.
+    - name: Query /api/status on local backend with SNI  # noqa command-instead-of-module
+      ansible.builtin.command:
+        cmd: >
+          curl -sk --resolve {{ site_main_name }}:8443:127.0.0.1
+          https://{{ site_main_name }}:8443/api/status
+      register: status
+      changed_when: false
+
+    - name: Parse JSON
+      ansible.builtin.set_fact:
+        ds: "{{ status.stdout | from_json }}"
+      failed_when: status.rc != 0 or (status.stdout | length) == 0
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} => name={{ ds.name }}, city={{ ds.city }}, region={{ ds.region }}, tz={{ ds.tz }}, time={{ ds.time }}"

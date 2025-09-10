@@ -1,0 +1,5 @@
+# per-node vars (рендерятся Jinja2 на этапе деплоя/сборки)
+set $ds_node_id "{{ ds_node_id | default('local-dev') }}";
+set $ds_city    "{{ ds_city    | default('Local') }}";
+set $ds_region  "{{ ds_region  | default('Dev') }}";
+set $ds_tz      "{{ ds_tz      | default('UTC') }}";

@@ -90,7 +90,7 @@
         <h1>🔐 Вход в систему</h1>
         <p>Digital Streamers Platform</p>
 
-        <form id="loginForm">
+        <form id="loginForm" action="/api/login" method="POST">
             <div class="form-group">
                 <label for="email">Email:</label>
                 <input type="email" id="email" name="email" required placeholder="your@email.com">
@@ -110,131 +110,10 @@
         </div>
 
         <div class="server-info">
-            Сервер: <!--# echo var="host" --> | 
+            Сервер: <span id="serverName">—</span> | 
             Время: <span id="currentTime"></span>
         </div>
     </div>
-
-	<script>
-	document.getElementById('loginForm').addEventListener('submit', async function(e) {
-		e.preventDefault();
-		
-		const submitBtn = document.getElementById('submitBtn');
-		const errorDiv = document.getElementById('errorMessage');
-		const errorText = document.getElementById('errorText');
-		const email = document.getElementById('email').value;
-		const password = document.getElementById('password').value;
-		
-		// Валидация на клиенте
-		if (!email.includes('@')) {
-			errorText.textContent = 'Пожалуйста, введите корректный email';
-			errorDiv.style.display = 'block';
-			return;
-		}
-		
-		if (password.length < 6) {
-			errorText.textContent = 'Пароль должен содержать не менее 6 символов';
-			errorDiv.style.display = 'block';
-			return;
-		}
-
-		// Показываем загрузку
-		submitBtn.textContent = 'Подключение...';
-		submitBtn.disabled = true;
-		errorDiv.style.display = 'none';
-
-		try {
-			// Имитируем задержку сети
-			await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 700));
-			
-			// Отправляем реальный AJAX-запрос
-			const response = await fetch('/api/login', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Requested-With': 'XMLHttpRequest'
-				},
-				body: JSON.stringify({
-					email: email,
-					password: password,
-					device_id: navigator.userAgent,
-					timestamp: Date.now()
-				})
-			});
-
-			const data = await response.json();
-			
-			// НАСТОЯЩИЙ АНАЛИЗ ОТВЕТА СЕРВЕРА!
-			console.log('Server response:', {
-				status: response.status,
-				headers: Object.fromEntries(response.headers.entries()),
-				data: data
-			});
-
-			if (response.status === 200) {
-				// Теоретически успешный ответ (но сервер никогда его не отправит)
-				errorText.textContent = '✅ Проверка учетных данных завершена';
-				errorDiv.style.display = 'block';
-				errorDiv.style.backgroundColor = 'rgba(100, 255, 100, 0.2)';
-				errorDiv.style.borderColor = 'rgba(100, 255, 100, 0.5)';
-				
-			} else if (response.status === 401) {
-				// Неавторизован - самая частая ошибка
-				errorText.textContent = data.message + ' (код ошибки: ' + data.error_code + ')';
-				errorDiv.style.display = 'block';
-				
-			} else if (response.status === 423) {
-				// Аккаунт заблокирован
-				errorText.textContent = 'Аккаунт временно заблокирован. Обратитесь в поддержку.';
-				errorDiv.style.display = 'block';
-				
-			} else if (response.status === 429) {
-				// Слишком много запросов
-				errorText.textContent = 'Слишком много попыток входа. Попробуйте через 5 минут.';
-				errorDiv.style.display = 'block';
-				
-			} else if (response.status >= 500) {
-				// Ошибка сервера
-				errorText.textContent = 'Внутренняя ошибка сервера. Попробуйте позже.';
-				errorDiv.style.display = 'block';
-				
-			} else {
-				// Любая другая ошибка
-				errorText.textContent = data.message || 'Неизвестная ошибка';
-				errorDiv.style.display = 'block';
-			}
-
-		} catch (error) {
-			// Ошибка сети
-			if (error.name === 'TypeError') {
-				errorText.textContent = 'Ошибка соединения с сервером авторизации';
-			} else {
-				errorText.textContent = 'Произошла непредвиденная ошибка';
-			}
-			errorDiv.style.display = 'block';
-			console.error('Network error:', error);
-			
-		} finally {
-			submitBtn.textContent = 'Войти';
-			submitBtn.disabled = false;
-			
-			// Логируем попытку входа (имитация)
-			console.log('Login attempt:', {
-				email: email,
-				timestamp: new Date().toISOString(),
-				userAgent: navigator.userAgent
-			});
-		}
-	});
-
-	// Дополнительные правдоподобные детали
-	document.getElementById('email').addEventListener('input', function() {
-		// Валидация email в реальном времени
-	});
-
-	document.getElementById('password').addEventListener('focus', function() {
-		// Подсказка о требованиях к паролю
-	});
-	</script>
+    <script src="/assets/app.js" defer></script>
 </body>
 </html>

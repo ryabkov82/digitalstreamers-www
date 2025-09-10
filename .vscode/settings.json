@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.conf.j2": "nginx",
+    "*.j2": "jinja"
+  },
+  "yaml.schemaStore.enable": false,
+  "ansible.validation.lint.enabled": true,
+  "ansible.lint.path": "/usr/bin/ansible-lint",
+  "ansible.python.interpreterPath": "/usr/bin/python3"  
+}
