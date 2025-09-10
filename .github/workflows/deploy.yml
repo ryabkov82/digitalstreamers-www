@@ -46,67 +46,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install "ansible-core>=2.16,<2.18" ansible-lint yamllint
 
-      - name: Write SSH key and base config
+      # Ключ подключаем через ssh-agent (без записи на диск)
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      # Пишем SSH config из секрета: здесь заданы Host алиасы, HostName/IP, Port, ProxyJump (если нужен)
+      - name: Write SSH config from secret
+        shell: bash
         run: |
           mkdir -p ~/.ssh
           umask 077
-          cat > ~/.ssh/ds_key <<'EOF'
-          ${{ secrets.DEPLOY_SSH_KEY }}
+          cat > ~/.ssh/config <<'EOF'
+          ${{ secrets.SSH_CONFIG }}
           EOF
-          chmod 600 ~/.ssh/ds_key
-          printf "Host *\n  IdentityFile ~/.ssh/ds_key\n  IdentitiesOnly yes\n  ServerAliveInterval 30\n" > ~/.ssh/config
+          chmod 600 ~/.ssh/config
 
-      # Определяем, задан ли секрет SSH_KNOWN_HOSTS (без использования secrets.* в if:)
-      - name: Detect SSH_KNOWN_HOSTS secret
-        id: detect_known
-        shell: bash
-        run: |
-          if [ -n "${{ secrets.SSH_KNOWN_HOSTS }}" ]; then
-            echo "has=1" >> "$GITHUB_OUTPUT"
-          else
-            echo "has=0" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Если секрет задан — используем его
-      - name: Write known_hosts from secret
-        if: steps.detect_known.outputs.has == '1'
-        shell: bash
-        run: |
-          umask 077
-          cat > ~/.ssh/known_hosts <<'EOF'
-          ${{ secrets.SSH_KNOWN_HOSTS }}
-          EOF
-          chmod 600 ~/.ssh/known_hosts
-
-      # Иначе — собираем known_hosts на лету через ssh-keyscan и inventory
-      - name: Build known_hosts from inventory (ssh-keyscan)
-        if: steps.detect_known.outputs.has == '0'
+      # Принять host keys для всех алиасов из inventory (работает и с ProxyJump)
+      - name: Accept host keys for all inventory hosts (via SSH aliases)
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p ~/.ssh
-          : > ~/.ssh/known_hosts
-
-          # Получаем список хостов группы mask_nodes (алиасы из inventory)
           mapfile -t HOSTS < <(ansible -i "$INV" mask_nodes --list-hosts | tail -n +2 | xargs -n1)
-
           for h in "${HOSTS[@]}"; do
-            info="$(ansible-inventory -i "$INV" --host "$h")"
-            host="$(echo "$info" | jq -r '.ansible_host // empty')"
-            port="$(echo "$info" | jq -r '.ansible_port // empty')"
-            pflag=""; [ -n "$port" ] && pflag="-p $port"
-
-            # Скан по алиасу (если резолвится публично)
-            ssh-keyscan -T 5 $pflag "$h"    >> ~/.ssh/known_hosts 2>/dev/null || true
-
-            # Скан по ansible_host (если задан и отличается)
-            if [ -n "$host" ] && [ "$host" != "$h" ]; then
-              ssh-keyscan -T 5 $pflag "$host" >> ~/.ssh/known_hosts 2>/dev/null || true
-            fi
+            echo ">>> Accepting host key for $h"
+            ssh -q \
+              -o StrictHostKeyChecking=accept-new \
+              -o BatchMode=yes \
+              -o ConnectTimeout=5 \
+              "$h" 'exit 0' || true
           done
-
-          sort -u ~/.ssh/known_hosts -o ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts || true
+          test -f ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts || true
 
       - name: (Optional) Lint
         run: |
