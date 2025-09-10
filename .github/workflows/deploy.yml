@@ -89,13 +89,6 @@ jobs:
         run: |
           echo "LIMIT='${LIMIT}'"
           echo "CHECK='${CHECK}'"
-          
-      - name: Debug | ssh -G (effective config)
-        run: ssh -G nl-ams-1 | sed -n '1,200p'        
-
-      - name: Debug | ssh -vvv test
-        run: |
-            ssh -vvv -o BatchMode=yes -o ConnectTimeout=10 nl-ams-1 'echo OK from $(hostname) && id' || true        
 
       - name: Dry-run deploy (check+diff)
         if: env.CHECK == 'true'
