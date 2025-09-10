@@ -26,7 +26,8 @@ RUN set -eux; \
     cp nginx/conf.d/00_ds_http.conf out/etc/nginx/conf.d/; \
     cp nginx/conf.d/site.conf out/etc/nginx/conf.d/; \
     cp nginx/snippets/security.conf out/etc/nginx/snippets/; \
-    cp -r frontend/. out/usr/share/nginx/html/
+    cp -r frontend/. out/usr/share/nginx/html/; \
+    cp frontend/robots.txt out/usr/share/nginx/html/
 
 ### stage 2: runtime
 FROM nginx:1.27-alpine
