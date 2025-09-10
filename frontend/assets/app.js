@@ -39,7 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Server response:', { status: res.status, headers: Object.fromEntries(res.headers.entries()), data });
   
         if (res.status === 200) {
-          setError('✅ Проверка учетных данных завершена', true);
+          if (data && data.token) {
+            localStorage.setItem('authToken', data.token);
+          }
+          setError('✅ Вход успешен. Перенаправляем...', true);
+          setTimeout(() => {
+            window.location.href = (data && data.redirect) ? data.redirect : '/dashboard';
+          }, 1000);
         } else if (res.status === 401) {
           setError((data && data.message) ? `${data.message} (код: ${data.error_code})` : 'Неавторизован');
         } else if (res.status === 423) {
