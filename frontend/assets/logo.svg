@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Digital Streamers">
+  <defs>
+    <linearGradient id="ds-g" x1="4" y1="8" x2="44" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B8CFF"/>
+      <stop offset="0.55" stop-color="#7B6CFF"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="#0B1220"/>
+  <path fill="url(#ds-g)" d="M10 30c0-8.284 6.716-15 15-15h2.2c1.326 0 2.4 1.074 2.4 2.4v.2c0 1.326-1.074 2.4-2.4 2.4H25c-5.523 0-10 4.477-10 10s4.477 10 10 10h13.5a2.5 2.5 0 0 0 0-5H25c-2.761 0-5-2.239-5-5z"/>
+  <circle cx="34.5" cy="18.5" r="3.5" fill="url(#ds-g)"/>
+  <path stroke="url(#ds-g)" stroke-width="2.2" stroke-linecap="round" fill="none" d="M29 18.5h-5.5M22 14.5l-3.2 4 3.2 4"/>
+</svg>

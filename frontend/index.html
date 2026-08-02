@@ -1,132 +1,200 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Streamers - Платформа для профессиональных стримов</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-align: center;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            max-width: 400px;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-        h1 {
-            font-size: 2em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #ff6b6b;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background: #ff5252;
-        }
-        .error-message {
-            background: rgba(255, 100, 100, 0.2);
-            border: 1px solid rgba(255, 100, 100, 0.5);
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 20px;
-            display: none;
-        }
-        .success-message {
-            background: rgba(100, 255, 100, 0.2);
-            border: 1px solid rgba(100, 255, 100, 0.5);
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 20px;
-            display: none;
-        }
-        .server-info {
-            margin-top: 30px;
-            font-size: 0.8em;
-            opacity: 0.7;
-        }
-        .info {
-            margin: 15px 0;
-            font-size: 0.9em;
-            line-height: 1.4;
-        }
-        .registration-alert {
-            margin-top: 20px;
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Streamers — платформа управления медиапотоками</title>
+  <meta name="description" content="Закрытая техническая платформа для управления медиапотоками, доставки медиаресурсов, мониторинга качества и аналитики.">
+  <link rel="canonical" href="https://www.digitalstreamers.xyz/">
+  <meta name="theme-color" content="#0b1220">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Digital Streamers">
+  <meta property="og:title" content="Digital Streamers — платформа управления медиапотоками">
+  <meta property="og:description" content="Закрытая техническая платформа для управления медиапотоками, доставки медиаресурсов, мониторинга качества и аналитики.">
+  <meta property="og:url" content="https://www.digitalstreamers.xyz/">
+  <meta property="og:image" content="https://www.digitalstreamers.xyz/assets/logo.svg">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Digital Streamers — платформа управления медиапотоками">
+  <meta name="twitter:description" content="Закрытая техническая платформа для управления медиапотоками, доставки медиаресурсов, мониторинга качества и аналитики.">
+  <meta name="twitter:image" content="https://www.digitalstreamers.xyz/assets/logo.svg">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/config.js" defer></script>
+  <script src="/assets/site.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 Вход в систему</h1>
-        <p>Digital Streamers Platform</p>
-        <p class="info">Платформа для организации и аналитики профессиональных стримов. Мы помогаем запускать трансляции и управлять аудиторией.</p>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
 
-        <form id="loginForm" action="/api/login" method="POST">
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required placeholder="your@email.com">
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Пароль:</label>
-                <input type="password" id="password" name="password" required placeholder="••••••••">
-            </div>
-
-            <button type="submit" id="submitBtn">Войти</button>
-        </form>
-
-        <p class="registration-alert">Регистрация новых пользователей временно недоступна.</p>
-
-        <div id="errorMessage" class="error-message" style="display: none;">
-            ⚠️ <strong>Ошибка авторизации</strong><br>
-            <span id="errorText"></span>
-        </div>
-
-        <div class="server-info">
-            Сервер: <span id="serverName">—</span> | 
-            Время: <span id="currentTime"></span>
-        </div>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="/">
+        <img src="/assets/logo.svg" width="36" height="36" alt="">
+        <span>Digital Streamers</span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-controls="site-nav" aria-expanded="false" aria-label="Открыть меню">
+        <span class="nav-toggle__bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+      <nav class="nav" id="site-nav" data-nav-panel aria-label="Основная навигация">
+        <a href="/#features">Возможности</a>
+        <a href="/#architecture">Архитектура</a>
+        <a href="/#platform">О платформе</a>
+        <a href="/contacts/">Контакты</a>
+        <a class="btn btn--primary btn--small" href="/login/">Войти</a>
+      </nav>
     </div>
-    <script src="/assets/app.js" defer></script>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-brand">
+      <div class="hero__grid" aria-hidden="true"></div>
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="hero__glow hero__glow--secondary" aria-hidden="true"></div>
+      <div class="container hero__content">
+        <h1 class="hero__brand" id="hero-brand">Digital Streamers</h1>
+        <p class="hero__title">Закрытая платформа для управления медиапотоками</p>
+        <p class="hero__lead">
+          Инфраструктура для организации профессиональных трансляций,
+          доставки медиаресурсов, мониторинга качества и технической аналитики.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="/login/">Войти в платформу</a>
+          <a class="btn btn--ghost" href="/contacts/">Связаться с нами</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title" id="features-title">Возможности</h2>
+          <p class="section__text">
+            Платформа предназначена для технических команд, которым нужна
+            управляемая инфраструктура медиапотоков и доставки контента.
+          </p>
+        </div>
+        <div class="features">
+          <article class="feature">
+            <div class="feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 7h16M4 12h10M4 17h7"/>
+                <circle cx="18" cy="17" r="3"/>
+              </svg>
+            </div>
+            <h3>Управление медиапотоками</h3>
+            <p>Организация источников, маршрутов доставки и технических параметров потоков.</p>
+          </article>
+          <article class="feature">
+            <div class="feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 12h16M14 6l6 6-6 6"/>
+              </svg>
+            </div>
+            <h3>Доставка контента</h3>
+            <p>Передача статических ресурсов, видеоматериалов и других медиаданных.</p>
+          </article>
+          <article class="feature">
+            <div class="feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 19V5M8 19v-8M12 19v-5M16 19V8M20 19v-3"/>
+              </svg>
+            </div>
+            <h3>Мониторинг качества</h3>
+            <p>Контроль доступности, задержек и состояния инфраструктуры.</p>
+          </article>
+          <article class="feature">
+            <div class="feature__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 20V10l6-4 4 3 6-5v16H4z"/>
+              </svg>
+            </div>
+            <h3>Техническая аналитика</h3>
+            <p>Сбор и анализ эксплуатационных показателей медиасервисов.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="architecture" aria-labelledby="architecture-title">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title" id="architecture-title">Как это работает</h2>
+          <p class="section__text">
+            Инфраструктура проекта поддерживает путь от источников контента
+            до приложений и внутренних систем.
+          </p>
+        </div>
+        <div class="flow" role="list">
+          <div class="flow__node" role="listitem">
+            <strong>Источники контента</strong>
+            <span>Потоки, файлы и медиаматериалы</span>
+          </div>
+          <div class="flow__arrow" aria-hidden="true">→</div>
+          <div class="flow__node" role="listitem">
+            <strong>Распределённая инфраструктура</strong>
+            <span>Маршрутизация, доставка и контроль</span>
+          </div>
+          <div class="flow__arrow" aria-hidden="true">→</div>
+          <div class="flow__node" role="listitem">
+            <strong>Приложения и внутренние системы</strong>
+            <span>Потребление и эксплуатация сервисов</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="platform" aria-labelledby="platform-title">
+      <div class="container">
+        <div class="access">
+          <div class="access__inner">
+            <div class="access__copy">
+              <h2 id="platform-title">Закрытая платформа</h2>
+              <p>
+                Digital Streamers используется для внутренних и партнёрских проектов.
+                Доступ предоставляется администраторами платформы.
+              </p>
+            </div>
+            <a class="btn btn--primary" href="/login/">Перейти к авторизации</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contacts" aria-labelledby="contacts-title">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title" id="contacts-title">Контакты</h2>
+          <p class="section__text">По вопросам доступа и сопровождения платформы.</p>
+        </div>
+        <div class="contact-block">
+          <div class="contact-card">
+            <h3>Электронная почта</h3>
+            <p><a data-support-email href="mailto:support@digitalstreamers.xyz">support@digitalstreamers.xyz</a></p>
+          </div>
+          <p><a href="/contacts/">Подробнее на странице контактов</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="site-footer__grid">
+        <div class="site-footer__brand">
+          <img src="/assets/logo.svg" width="40" height="40" alt="">
+          <div>
+            <strong>Digital Streamers</strong>
+            <p>Закрытая техническая платформа для управления медиапотоками и доставки медиаресурсов.</p>
+          </div>
+        </div>
+        <nav class="site-footer__links" aria-label="Ссылки в подвале">
+          <a href="/contacts/">Контакты</a>
+          <a href="/privacy/">Privacy Policy</a>
+          <a href="/terms/">Terms of Use</a>
+        </nav>
+      </div>
+      <p class="site-footer__meta">© <span data-current-year>2026</span> Digital Streamers</p>
+    </div>
+  </footer>
 </body>
 </html>

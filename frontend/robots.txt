@@ -1,2 +1,6 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /login/
+Disallow: /api/
+
+Sitemap: https://www.digitalstreamers.xyz/sitemap.xml
